@@ -16,6 +16,7 @@ https://github.com/VolosR/TDisplayS3Currency 에서 한국 시간과 USD 원화 
 
 3. 소스코드서 WIFI 공유기 설정 변경하기
  TDisplayS3Currency.ino 에서 아래의 내용을 자신의 WIFI 공유기 설정으로 변경해주세요.
-
+    ```
     const char* ssid     = "*********";///EDIIIT
     const char* password = "*********";
+    ```
