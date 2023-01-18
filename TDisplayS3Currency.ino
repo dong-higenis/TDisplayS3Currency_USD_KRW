@@ -16,8 +16,10 @@ TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sprite= TFT_eSprite(&tft);
 
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec =3600;             //time zone * 3600 , my time zone is  +1 GTM
-const int   daylightOffset_sec = 3600; 
+
+// 현재 시간을 한국 시간(GMT +9) 으로 변경 (3600 * 9)
+const long  gmtOffset_sec = 32400; //time zone * 3600 , my time zone is  +1 GTM
+const int   daylightOffset_sec = 32400;
 
 #define small NotoSansBold15
 #define large NotoSansBold36
@@ -32,20 +34,43 @@ const int   daylightOffset_sec = 3600;
 int px=10;
 int py=10;
 
-const char* ssid     = "xxxxx";       ///EDIIIT
-const char* password = "xxxxx";
+const char* ssid     = "*********";       ///EDIIIT
+const char* password = "*********";
 String date2="";
 String payload="";
 StaticJsonDocument<6000> doc;
 String endpoint2 ="https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/hrk.min.json";
 
-String cur[11]={"eur","hrk","usd","gbp","aud","cad","chf","jpy","cny","nzd","btc"};
-int fromCurrency=0;
-int toCurrency=2;
+enum {
+  CURRENCY_EUR = 0, // 0: Euro
+  CURRENCY_HRK,     // 1: Croatian Kuna
+  CURRENCY_USD,     // 2: US Dollar
+  CURRENCY_GBP,     // 3: Pound Sterling
+  CURRENCY_AUD,     // 4: Australian Dollar
+  CURRENCY_CAD,     // 5: Canadian Dollar
+  CURRENCY_CHF,     // 6: Swiss Franc
+  CURRENCY_JPY,     // 7: Japanese Yen
+  CURRENCY_CNY,     // 8: Chinese Renminbi
+  CURRENCY_NZD,     // 9: New Zealand Dollar
+  CURRENCY_BTC,     // 10: BitCoin
+  CURRENCY_KRW,     // 11: Korean Won
+  MAX_CURRENCY,     // 12
+};
+
+// KRW 추가
+String cur[MAX_CURRENCY]={"eur","hrk","usd","gbp","aud","cad","chf","jpy","cny","nzd","btc","krw"};
+
+// USD 에서
+int fromCurrency=CURRENCY_USD;
+// KRW로 변환
+int toCurrency=CURRENCY_KRW;
+
 double amount=1;
 
-String big[22]={"EUR","HRK","USD","GBP","AUD","CAD","CHF","JPY","CNY","NZD","BTC"};
-String curNames[11]={"Euro","Croatian Kuna","US Dollar","Pound Sterling","Australian Dollar","Canadian Dollar","Swiss Franc","Japanese Yen","Chinese Renminbi","New Zealand Dollar","BitCoin"};
+// WON 문구 추가
+String big[MAX_CURRENCY]={"EUR","HRK","USD","GBP","AUD","CAD","CHF","JPY","CNY","NZD","BTC","WON"};
+// Korean Won 문구 추가
+String curNames[MAX_CURRENCY]={"Euro","Croatian Kuna","US Dollar","Pound Sterling","Australian Dollar","Canadian Dollar","Swiss Franc","Japanese Yen","Chinese Renminbi","New Zealand Dollar","BitCoin","Korean Won"};
 
 float res;
 String ip="";
@@ -64,20 +89,22 @@ void setup() {
 
 pinMode(0,INPUT_PULLUP);  
 pinMode(14,INPUT_PULLUP);  
-
+  
   tft.init();
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
-
+  
+  Serial.begin(115200);
+  Serial.printf("Connection... \nssid %s, password %s\n", ssid, password);
+  
   WiFi.begin(ssid, password);
-
-
-while (WiFi.status() != WL_CONNECTED) {
-    delay(400);
-    
-   }
+  
+  while (WiFi.status() != WL_CONNECTED) {
+  delay(400);
+  Serial.print(".");
+ }
   ip=WiFi.localIP().toString();
-
+  Serial.printf("\nConnection success ip %s\n", ip);
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   
   sprite.createSprite(320,170);
@@ -103,7 +130,7 @@ void getData()
    deserializeJson(doc,inp);
 
     date2=String(doc["date"].as<const char*>());
-    res=doc[cur[fromCurrency]][cur[toCurrency]].as<float>();
+    res=doc[cur[fromCurrency]][cur[toCurrency]].as<float>();    
    }}
   
 }
@@ -122,12 +149,15 @@ sprite.drawString(String(timeSec),280,110);
 sprite.unloadFont();
 
 sprite.loadFont(final);
-sprite.drawString(big[fromCurrency]+" - "+big[toCurrency],12,60);
+// WON 문자열 잘리는 문제로 " - " 에서 "-"로 줄임
+sprite.drawString(big[fromCurrency]+"-"+big[toCurrency],12,60);
 sprite.unloadFont();
 
 sprite.setTextColor(c2,TFT_BLACK);
 sprite.loadFont(large);
-sprite.drawFloat(res,6,12,88);//
+
+// 두번째 자리 2: 소숫점 자릿수 최대 2자리 표현
+sprite.drawFloat(res,2,12,88);
 sprite.unloadFont();
 sprite.setTextColor(c1,TFT_BLACK);
 
